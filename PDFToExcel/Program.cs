@@ -22,8 +22,9 @@ numberFormatInfo.CurrencyDecimalSeparator = ".";
 numberFormatInfo.NumberDecimalSeparator = ".";
 numberFormatInfo.PercentDecimalSeparator = ".";
 var fitxers = Directory.EnumerateFiles("C:\\Users\\Admin\\Documents\\Prova Beroni\\01-BSP 2025");
-foreach (var fitxer in fitxers)
+foreach (var fitxer in fitxers.Take(1))
 {
+    var nomfitxer=fitxer.Substring(fitxer.LastIndexOf("\\")+1);
     List<string> liniesTKT = new List<string>();
     using (PdfDocument document = PdfDocument.Open(fitxer, new ParsingOptions() { ClipPaths = true }))
     {
@@ -43,12 +44,13 @@ foreach (var fitxer in fitxers)
         var builder = new PdfDocumentBuilder { };
         PdfDocumentBuilder.AddedFont font = builder.AddStandard14Font(Standard14Font.Helvetica);
         var paginaProva = 2;
-        var pageBuilder = builder.AddPage(document, paginaProva);
-        pageBuilder.SetStrokeColor(0, 255, 0);
-        var outputPath = "C:\\Users\\Admin\\Documents\\Prova Beroni\\Resultat PDF Parsejat.pdf";
+
+        var outputPath = "C:\\Users\\Admin\\Documents\\Prova Beroni\\01-BSP 2025 Resultat\\";
         List<LiniaLiquidacio> llista = new List<LiniaLiquidacio>();
-        foreach (Page page in document.GetPages().Skip(1).Take(paginaProva))
+        foreach (Page page in document.GetPages())
         {
+            var pageBuilder = builder.AddPage(document, page.Number);
+            pageBuilder.SetStrokeColor(0, 255, 0);
             var pageSegmenter = DocstrumBoundingBoxes.Instance;
             var words = page.GetWords();
             var tkttwords = words.Where(x => x.Text == "TKTT").OrderBy(x => x.BoundingBox.Top);
@@ -57,14 +59,15 @@ foreach (var fitxer in fitxers)
             foreach (var item in tkttwords)
             {
                 var cia = ObtenirCamp(23, 32, pageBuilder, page, item);
+                var trnc = ObtenirCamp(40, 55, pageBuilder, page, item);
                 var num_doc = ObtenirCamp(65, 95, pageBuilder, page, item);
                 var emision = ObtenirCamp(113, 136, pageBuilder, page, item);
                 var cpui = ObtenirCamp(149, 163, pageBuilder, page, item);
                 var stat = ObtenirCamp(199, 206, pageBuilder, page, item);
                 var fop = ObtenirCamp(220, 230, pageBuilder, page, item);
-                var import_transacc = ObtenirCamp(270, 289, pageBuilder, page, item);
+                var import_transacc = ObtenirCamp(262, 289, pageBuilder, page, item);
                 var tarifa = ObtenirCamp(325, 345, pageBuilder, page, item);
-                var tasas = ObtenirCamp(386, 396, pageBuilder, page, item);
+                var tasas = ObtenirCamp(380, 396, pageBuilder, page, item);
                 var g_c = ObtenirCamp(434, 447, pageBuilder, page, item);
                 //var pen = ObtenirCamp(434, 447, pageBuilder, page, item);
                 var cobl = ObtenirCamp(540, 559, pageBuilder, page, item);
@@ -77,6 +80,7 @@ foreach (var fitxer in fitxers)
                 LiniaLiquidacio liniaLiquidacio = new LiniaLiquidacio()
                 {
                     CIA = cia,
+                    TRNC = trnc,
                     NUM_DOC = num_doc,
                     FECHA_EMISION = emision,
                     CPUI = cpui,
@@ -95,17 +99,17 @@ foreach (var fitxer in fitxers)
                 };
                 llista.Add(liniaLiquidacio);
             }
-
-            byte[] fileBytes = builder.Build();
-            File.WriteAllBytes(outputPath, fileBytes);
-            using (XLWorkbook wb = new XLWorkbook())
-            {
-                var ws = wb.AddWorksheet(1);
-                ws.Cell(1, 1).InsertData(llista);
-                wb.SaveAs("C:\\Users\\Admin\\Documents\\Prova Beroni\\Resultat XL Parsejat.xlsx");
-            }
-            //IEnumerable<Word> words = page.GetWords(NearestNeighbourWordExtractor.Instance);
         }
+
+        byte[] fileBytes = builder.Build();
+        File.WriteAllBytes(Path.Combine( outputPath,$"{nomfitxer}"), fileBytes);
+        using (XLWorkbook wb = new XLWorkbook())
+        {
+            var ws = wb.AddWorksheet(1);
+            ws.Cell(1, 1).InsertData(llista);
+            wb.SaveAs($"C:\\Users\\Admin\\Documents\\Prova Beroni\\01-BSP 2025 Resultat\\Resultat XL Parsejat ({nomfitxer}).xlsx");
+        }
+        //IEnumerable<Word> words = page.GetWords(NearestNeighbourWordExtractor.Instance);
     }
 
 }
